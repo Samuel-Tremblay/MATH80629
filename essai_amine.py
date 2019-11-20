@@ -6,79 +6,13 @@ from scipy import ndimage as ndi
 from skimage import morphology
 from skimage.filters  import gaussian
 from matplotlib import cm
-from skimage.transform import rescale, resize, downscale_local_mean, seam_carve
-from sklearn.svm import LinearSVC, SVC
-from sklearn.model_selection import GridSearchCV
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import RandomForestClassifier
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.optim import lr_scheduler
-import torchvision
-from torchvision import datasets, models, transforms
+
 
 # %% md
 
 #-------------------------------------
 #Preprocessing
 #-------------------------------------
-
-
-# %%
-
-# General utils
-
-# Create an array of number form 0 to 1
-# where the gap between to consecutive number is 0.1
-def creatBins():
-    return np.arange(0, 1, 0.01)
-
-
-# Create and histogram givens bin and an input vector
-def createHistogram(normalizeVector, bins):
-    return np.histogram(normalizeVector, bins=bins)[0]
-
-
-# This gives a normalize vector of frequency of pixel. This is a nomalize projection
-def getFrequencyRowVector(image):
-    result = np.zeros(100)
-    for x in range(len(image)):
-        result[x] = sum(image[x])
-    norm = np.linalg.norm(result)
-    if norm == 0:
-        return result
-    return result / norm
-
-
-def getFrequencyColumnVector(image):
-    transpose = np.transpose(image)
-    result = np.zeros(100)
-    for x in range(len(transpose)):
-        result[x] = sum(transpose[x])
-    norm = np.linalg.norm(result)
-    if norm == 0:
-        return result
-    return result / norm
-
-
-# This gives a vector of frequency of pixel.  This is a projection
-
-def getFrequencyRowVectorNotNormalize(image):
-    result = np.zeros(100)
-    for x in range(len(image)):
-        result[x] = sum(image[x])
-    return result
-
-
-def getFrequencyColumnVectorNotNormalize(image):
-    transpose = np.transpose(image)
-    result = np.zeros(100)
-    for x in range(len(transpose)):
-        result[x] = sum(transpose[x])
-    return result
-
 
 def transformToBinaryImageWithTreshold(image, treshold):
     newImage = []
@@ -127,24 +61,8 @@ def preProcess(img):
             result[x] = img[x]
     return result.reshape(100,100) #a la fin on aura une matrice (image clean sans noise) de 100*100
 
-#%%
 
-
-def SeventhIdeaPreProcess(image):
-    preprocess = preProcess(image)
-    preProccessed = transformToBinaryImageWithTreshold(preprocess.reshape(-1), 50)
-    row = getFrequencyRowVectorNotNormalize(preProccessed)
-    col = getFrequencyColumnVectorNotNormalize(preProccessed)
-    trimmed_row = np.trim_zeros(row, 'f')
-    trimmed_col = np.trim_zeros(col, 'f')
-
-    full_row = np.concatenate((trimmed_row, np.zeros(100 - len(trimmed_row))), axis=None)
-    full_col = np.concatenate((trimmed_col, np.zeros(100 - len(trimmed_col))), axis=None)
-    return np.concatenate((full_row, full_col), axis=None)
-
-
-
-def NineIdeaPreProcess(image):
+def IdeaPreProcess(image):
     preprocess = preProcess(image)
     preProccessed = transformToBinaryImageWithTreshold(preprocess.reshape(-1), 100).reshape(100, 100)
 
@@ -190,12 +108,6 @@ categories = [
 ]
 
 
-def saveSubmissionFile(filename, content):
-    count = 0
-    for c in content:
-        print(str(count)+ ',' + categories[c]+'')
-        count = count + 1
-
 def loadLabelFile(filename):
     data = []
     f = open(filename, 'r')
@@ -228,14 +140,9 @@ print("Test image Loaded")
 
 #%%
 
-train_x = preProcessData(img_train, NineIdeaPreProcess) #25 by 25 matrix
-test_x = preProcessData(img_test, NineIdeaPreProcess)#25 by 25 matrix
+train_x = preProcessData(img_train, IdeaPreProcess) #25 by 25 matrix
+test_x = preProcessData(img_test, IdeaPreProcess)#25 by 25 matrix
 
-train_x_flat = preProcessData(img_train, SeventhIdeaPreProcess) #200 input vector
-test_x_flat = preProcessData(img_test, SeventhIdeaPreProcess) #200 input vector
-
-
-print(train_x)
 
 
 X_train = np.array(train_x).reshape(np.array(train_x).shape[0], 25, 25, 1)
